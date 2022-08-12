@@ -13,7 +13,6 @@ import (
 )
 
 type task struct {
-	ID          string  `json:"_id"`
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
@@ -37,7 +36,7 @@ func main() {
 
 	fmt.Println("Connected to MongoDB!")
 
-	collection = client.Database("go_rest").Collection("trainers")
+	collection = client.Database("go_rest").Collection("tasks")
 
 	r := gin.Default()
 	r.GET("/ping", ping)
@@ -48,12 +47,11 @@ func main() {
 	r.DELETE("/task/:id", deleteTask)
 	r.PUT("/task/:id", updateTask)
 
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	r.Run("localhost:7564") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
 
 func getTasks(c *gin.Context) {
 
-	//filter := bson.D{{"_id", bson.M{"$eq": bsontype.Null}}}
 
 	cursor, err := collection.Find(context.TODO(), bson.D{})
 	var results []bson.M
@@ -61,7 +59,6 @@ func getTasks(c *gin.Context) {
 		log.Fatal(err)
 	}else {
 		for cursor.Next(c) {
-			// Declare a result BSON object
 			var result bson.M
 			err := cursor.Decode(&result)
 			if err != nil {
