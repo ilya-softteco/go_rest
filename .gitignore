@@ -1,4 +1,7 @@
 /.idea
 *iml
 restApiMongoDB/*.iml
+restApiMySQLDB/*.iml
+restApiMySQLDB/mysql_db
 *.gz
+restApiMySQLDB/config.json
