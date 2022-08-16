@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-type task struct {
+type Task struct {
+	Id       string  `json:"id"`
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
@@ -27,7 +28,6 @@ func dsn(viper *viper.Viper) string {
 var db *sql.DB
 
 func main() {
-
 	viper.AddConfigPath(".")
 	viper.SetConfigName("config")
 	viper.SetConfigType("json")
@@ -63,38 +63,70 @@ func main() {
 
 func getTasks(c *gin.Context) {
 
+	res, err :=db.Query("SELECT * FROM tasks")
+
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var tasks []Task
+	for res.Next() {
+		var task Task
+		if err := res.Scan(&task.Id,&task.Title, &task.Description,&task.Price); err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err.Error())
+
+		}
+		tasks = append(tasks, task)
+	}
+	c.IndentedJSON(http.StatusOK, tasks)
+
 }
 
 func deleteTask(c *gin.Context) {
+	idParam := c.Param("id")
 
+	_, err :=db.Query("DELETE FROM  tasks WHERE id = ?", idParam)
+
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, true)
 }
 
 func ping(c *gin.Context) {
-
+	c.JSON(http.StatusOK, gin.H{
+		"message": "pong",
+	})
 }
 func getTask(c *gin.Context) {
 
 	idParam := c.Param("id")
 
-	/*sql := fmt.Sprintf(
-		"SELECT * FROM  tasks WHERE id = %d" ,
-		idParam)*/
-
-
 	res, err :=db.Query("SELECT * FROM tasks WHERE id = ?", idParam)
 
 	if err != nil {
-		log.Fatal(err)
+		c.IndentedJSON(http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	c.IndentedJSON(http.StatusCreated, res.Next())
+	var task Task
+	res.Next()
+	if err := res.Scan(&task.Id,&task.Title, &task.Description,&task.Price); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, task)
 
 }
 
 func addTask(c *gin.Context) {
-
-	var newTask task
+	var newTask Task
 	if err := c.BindJSON(&newTask); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -104,11 +136,28 @@ func addTask(c *gin.Context) {
 	res, err := db.Exec(sql)
 
 	if err != nil {
-		log.Fatal(err)
+		c.IndentedJSON(http.StatusInternalServerError, err.Error())
+		return
 	}
 	c.IndentedJSON(http.StatusCreated, res)
 }
 
 func updateTask(c *gin.Context) {
 
+	var newTask Task
+	if err := c.BindJSON(&newTask); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	sql := fmt.Sprintf(
+		"UPDATE  tasks SET title = '%s' , description = '%s' , price = %f ",
+		newTask.Title, newTask.Description, newTask.Price)
+	res, err := db.Exec(sql)
+
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.IndentedJSON(http.StatusCreated, res)
 }
